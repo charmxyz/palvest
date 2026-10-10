@@ -13,7 +13,7 @@ export default function CreatorOnboarding() {
       <header className="relative mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
         <Logo suffix="Studio" />
         <Link href="/pals" className="text-sm text-muted-foreground hover:text-foreground">
-          Browse videos
+          Explore creators
         </Link>
       </header>
       <main className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-6 pb-32">

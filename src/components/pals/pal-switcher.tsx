@@ -47,7 +47,7 @@ export function PalSwitcher({ current, pals }: { current: { email: string; name:
             <div className="min-w-0 flex-1">
               <div className="truncate">{p.name ?? p.email}</div>
               <div className="font-mono text-[10px] text-muted-foreground">
-                {p.projects} videos · {money(p.total)}
+                {p.projects} projects · {money(p.total)}
               </div>
             </div>
             {p.email === current.email ? <CheckIcon className="size-4" /> : null}

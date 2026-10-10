@@ -41,7 +41,7 @@ async function Portfolio() {
         </div>
         <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-border bg-border md:grid-cols-4">
           {[
-            ["Videos backed", String(entries.length)],
+            ["Projects backed", String(entries.length)],
             ["Contributed", moneyCents(contributed)],
             ["Revenue received", moneyCents(received)],
             ["Owed, not yet paid", moneyCents(pending)],
@@ -108,9 +108,9 @@ async function Portfolio() {
         </ul>
       ) : (
         <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-border p-16 text-center">
-          <p className="text-muted-foreground">You haven&apos;t backed any videos yet.</p>
+          <p className="text-muted-foreground">You haven&apos;t backed any projects yet.</p>
           <Link href="/pals" className="flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm text-background">
-            Explore videos <ArrowRightIcon className="size-4" />
+            Explore creators <ArrowRightIcon className="size-4" />
           </Link>
         </div>
       )}

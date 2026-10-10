@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { DM_Mono, DM_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,7 +20,15 @@ export function RootHtml({ theme, children }: { theme: "dark" | "light"; childre
   );
 }
 
-export const siteMetadata = {
-  title: "Palvest — Invest in your favorite creators",
-  description: "Back your favorite creators' next projects and share in what they earn.",
+const TITLE = "Palvest — Invest in your favorite creators";
+const DESCRIPTION = "Back your favorite creators' next projects before they're made, and share in what they earn.";
+
+export const siteMetadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://palvest.xyz"),
+  title: { default: TITLE, template: "%s · Palvest" },
+  description: DESCRIPTION,
+  applicationName: "Palvest",
+  keywords: ["creators", "fans", "crowdfunding", "revenue share", "creator economy"],
+  openGraph: { type: "website", siteName: "Palvest", title: TITLE, description: DESCRIPTION, url: "/" },
+  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
 };

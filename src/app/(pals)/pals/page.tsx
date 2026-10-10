@@ -9,7 +9,7 @@ import { compactNumber, money } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [
-  { key: "all", label: "All videos" },
+  { key: "all", label: "All projects" },
   { key: "funding", label: "Raising" },
   { key: "funded", label: "Funded" },
   { key: "published", label: "Earning" },
@@ -23,10 +23,10 @@ export default function PalsPage({ searchParams }: PageProps<"/pals">) {
           Pals marketplace
         </span>
         <h1 className="max-w-3xl text-5xl font-medium tracking-[-0.03em] text-balance sm:text-6xl">
-          Back the videos you want to exist.
+          Back the creators you believe in.
         </h1>
         <p className="max-w-xl text-lg text-balance text-muted-foreground">
-          Fund YouTube videos before they&apos;re made. If the video earns, you share in its revenue.
+          Fund their next project before it&apos;s made. When it earns, you share in the revenue.
         </p>
         <Suspense fallback={<Skeleton className="h-16 w-full max-w-xl rounded-2xl" />}>
           <PlatformStats />
@@ -38,8 +38,8 @@ export default function PalsPage({ searchParams }: PageProps<"/pals">) {
       </Suspense>
 
       <p className="mx-auto max-w-2xl text-center text-xs text-muted-foreground">
-        Backing a video is not an investment in the creator&apos;s company and does not confer ownership.
-        Returns depend on the video&apos;s actual eligible revenue and are not guaranteed.
+        Backing a project is not an investment in the creator&apos;s company and does not confer ownership.
+        Returns depend on the project&apos;s actual eligible revenue and are not guaranteed.
       </p>
     </div>
   );
@@ -54,7 +54,7 @@ async function PlatformStats() {
       (select coalesce(sum(backer_pool_amount), 0) from distributions where status in ('processing', 'success', 'ledger_only')) as paid`;
   const stats = [
     ["Raised for creators", money(Number(row.raised))],
-    ["Pals backing videos", compactNumber(Number(row.pals))],
+    ["Pals backing creators", compactNumber(Number(row.pals))],
     ["Paid back to Pals", money(Number(row.paid))],
   ];
   return (
@@ -78,7 +78,7 @@ async function Marketplace({ searchParams }: Pick<PageProps<"/pals">, "searchPar
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-medium tracking-tight">Videos looking for Pals</h2>
+        <h2 className="text-xl font-medium tracking-tight">Projects looking for Pals</h2>
         <div className="flex gap-1 rounded-full border border-border bg-card p-1">
           {FILTERS.map((f) => {
             const count = f.key === "all" ? all.length : all.filter((p) => p.status === f.key).length;

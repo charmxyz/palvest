@@ -39,7 +39,7 @@ async function Detail({ params }: Pick<PageProps<"/pals/[id]">, "params">) {
   return (
     <div className="flex flex-col gap-8">
       <Link href="/pals" className="flex items-center gap-1.5 self-start text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon className="size-4" /> All videos
+        <ArrowLeftIcon className="size-4" /> All projects
       </Link>
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_400px]">
@@ -176,9 +176,9 @@ async function Detail({ params }: Pick<PageProps<"/pals/[id]">, "params">) {
           ) : null}
 
           <p className="rounded-2xl border border-border p-4 text-xs leading-relaxed text-muted-foreground">
-            Forecasts are estimates based on public YouTube data and an assumed RPM; they are not a promise of returns.
-            Pals receive {p.revenueSharePercent}% of the video&apos;s eligible YouTube revenue for {p.revenueShareMonths} months after
-            publication, pro rata to their contribution. If the video underperforms, Pals may receive less than they contributed.
+            Forecasts are estimates based on the creator&apos;s public channel data and an assumed RPM; they are not a promise of returns.
+            Pals receive {p.revenueSharePercent}% of the project&apos;s eligible revenue for {p.revenueShareMonths} months after
+            publication, pro rata to their contribution. If it underperforms, Pals may receive less than they contributed.
           </p>
         </article>
 

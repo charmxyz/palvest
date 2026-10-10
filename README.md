@@ -1,6 +1,6 @@
 # Palvest
 
-**Fans invest in YouTube videos.** A creator proposes a video before it's made, raises the budget from Pals through PayPal, and shares a percentage of the video's eligible revenue back with them.
+**Invest in your favorite creators.** Fans back a creator's next project before it's made, and share in what it earns. Creators propose a video, raise the budget from their Pals, and share a percentage of its eligible revenue back with them.
 
 One Next.js 16 app, two modes:
 
