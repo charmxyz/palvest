@@ -6,12 +6,12 @@ import { CreatorSim } from "./creator-sim";
 import { PalSim } from "./pal-sim";
 
 const TABS = [
-  { id: "creator", label: "As a creator", Sim: CreatorSim },
   { id: "pal", label: "As a Pal", Sim: PalSim },
+  { id: "creator", label: "As a creator", Sim: CreatorSim },
 ] as const;
 
 export function Simulations() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("creator");
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("pal");
   const active = TABS.find((t) => t.id === tab)!;
   return (
     <div className="flex flex-col gap-6">

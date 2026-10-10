@@ -44,18 +44,18 @@ const NAV = [
 function PrimaryCta({ className }: { className?: string }) {
   return (
     <Link
-      href="/creator"
+      href="/pals"
       className={cn("group flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background transition hover:bg-foreground/90", className)}
     >
-      Start a proposal <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
+      Find a creator to back <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }
 
 function SecondaryCta() {
   return (
-    <Link href="/pals" className="rounded-full border border-foreground/15 px-5 py-2.5 text-sm transition hover:border-foreground/40">
-      Back a creator
+    <Link href="/creator" className="rounded-full border border-foreground/15 px-5 py-2.5 text-sm transition hover:border-foreground/40">
+      I&apos;m a creator
     </Link>
   );
 }
@@ -87,11 +87,11 @@ export default function Home() {
             ))}
           </nav>
           <div className="flex items-center gap-4">
-            <Link href="/pals" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">
-              Explore
-            </Link>
-            <Link href="/creator" className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition hover:bg-foreground/90">
+            <Link href="/creator" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">
               For creators
+            </Link>
+            <Link href="/pals" className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition hover:bg-foreground/90">
+              Explore creators
             </Link>
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function Home() {
                 Invest in your favorite creators.
               </h1>
               <p className="max-w-lg text-lg text-pretty text-muted-foreground">
-                Creators raise the budget for their next video from the fans who want it made. When it earns, a share comes back to every Pal who backed it.
+                Back the next video from a creator you already watch, before it&apos;s made. When it earns, you get a share of what it brings in.
               </p>
               <div className="flex flex-wrap gap-3">
                 <PrimaryCta />
@@ -161,7 +161,7 @@ export default function Home() {
             <SectionHead
               eyebrow="Simulate"
               title="Watch a project play out."
-              body="A real demo project from pitch to payout, and the exact math a Pal sees before backing. Same formulas the app runs."
+              body="The exact math you see before backing, and a real demo project from pitch to payout. Same formulas the app runs."
             />
             <Simulations />
             <p className="text-xs text-muted-foreground">
@@ -231,7 +231,7 @@ export default function Home() {
           <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-7 px-4 py-24 text-center sm:px-6 sm:py-32">
             <PixelGlyph name="back" className="h-7" />
             <h2 className="max-w-2xl text-4xl font-medium tracking-[-0.03em] text-balance sm:text-5xl">
-              Your next video already has an audience. Let them back it.
+              The videos you want to watch, made because you backed them.
             </h2>
             <div className="flex flex-wrap justify-center gap-3">
               <PrimaryCta />

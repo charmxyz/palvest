@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+/** The Palvest mark (public/logo-mark.png, cropped from Logo.png), used as a mask so it takes the text color in both themes. */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden className={cn("size-5", className)}>
-      <circle cx="9" cy="12" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" />
-      <circle cx="15" cy="12" r="6.5" fill="currentColor" fillOpacity="0.9" />
-    </svg>
+    <span
+      aria-hidden
+      className={cn(
+        "inline-block aspect-[660/432] h-3.5 shrink-0 bg-current [mask:url(/logo-mark.png)_center/contain_no-repeat]",
+        className,
+      )}
+    />
   );
 }
 
