@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { z } from "zod";
 import { body, HttpError, route } from "@/lib/api";
-import { db } from "@/lib/db";
+import { transaction } from "@/lib/db";
 import { getCreator, listProposals } from "@/lib/data";
 import { buildForecast, metricsSample } from "@/lib/finance";
 
@@ -45,8 +45,7 @@ export const POST = route(async (req: Request) => {
     explanation: input.forecastExplanation,
   });
 
-  const sql = db();
-  const [row] = await sql.begin(async (tx) => {
+  const [row] = await transaction(async (tx) => {
     await tx`update creator_profiles set assumed_rpm = ${input.assumedRpm} where id = ${creator.id}`;
     return tx`
       insert into proposals ${tx({

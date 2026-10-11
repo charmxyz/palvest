@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { body, HttpError, route } from "@/lib/api";
-import { db } from "@/lib/db";
+import { transaction } from "@/lib/db";
 import { getProposal } from "@/lib/data";
 import { revenueFor, round2 } from "@/lib/finance";
 import { fetchVideos, parseVideoId } from "@/lib/youtube";
@@ -25,8 +25,7 @@ export const POST = route(async (req: Request, ctx: RouteContext<"/api/projects/
     if (!video) throw new HttpError("Video not found or not public.", 404);
   }
 
-  const sql = db();
-  await sql.begin(async (tx) => {
+  await transaction(async (tx) => {
     await tx`
       insert into published_videos ${tx({
         proposal_id: id,

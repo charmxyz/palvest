@@ -1,5 +1,5 @@
 import "server-only";
-import { db } from "./db";
+import { db, transaction } from "./db";
 import { getBackings, getDistributions, getProposal, getPublishedVideo, settlement } from "./data";
 import { round2, splitPool } from "./finance";
 import { HttpError } from "./api";
@@ -39,8 +39,7 @@ export async function createDistribution(proposalId: string, status: "awaiting_f
   );
   const pool = round2(lines.reduce((a, l) => a + l.payout, 0));
 
-  const sql = db();
-  return sql.begin(async (tx) => {
+  return transaction(async (tx) => {
     // An abandoned checkout from a previous click is superseded by this one.
     await tx`delete from distributions where proposal_id = ${proposalId} and status = 'awaiting_funding'`;
     const [dist] = await tx`

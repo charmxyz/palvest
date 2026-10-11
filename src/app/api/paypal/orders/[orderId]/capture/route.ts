@@ -1,5 +1,5 @@
 import { HttpError, route } from "@/lib/api";
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
 import { getProposal } from "@/lib/data";
 import { captureOrder, getOrder, PayPalError, type CaptureResult } from "@/lib/paypal";
 import { setActivePal } from "@/lib/session";
@@ -43,7 +43,7 @@ export const POST = route(
         .join(" ");
       const email = result.payer?.email_address ?? null;
 
-      await sql.begin(async (tx) => {
+      await transaction(async (tx) => {
         const updated = await tx`
           update backings set
             status = 'completed',

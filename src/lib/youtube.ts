@@ -54,7 +54,15 @@ function apiKey() {
 
 async function yt<T>(path: string, params: Record<string, string>): Promise<T> {
   const qs = new URLSearchParams({ ...params, key: apiKey() });
-  const res = await fetch(`${API}/${path}?${qs}`, { cache: "no-store" });
+  const res = await fetch(`${API}/${path}?${qs}`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  }).catch((err) => {
+    if (err instanceof DOMException && err.name === "TimeoutError") {
+      throw new YouTubeError("YouTube took too long to respond. Please try again.", 504);
+    }
+    throw err;
+  });
   const body = await res.json();
   if (!res.ok) {
     const reason = body?.error?.errors?.[0]?.reason;

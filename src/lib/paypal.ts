@@ -14,6 +14,18 @@ export class PayPalError extends Error {
 
 let token: { value: string; expiresAt: number } | null = null;
 
+/** Give up on a PayPal call rather than leave the request (and the creator) hanging. */
+async function paypalFetch(url: string, init: RequestInit) {
+  try {
+    return await fetch(url, { ...init, cache: "no-store", signal: AbortSignal.timeout(20_000) });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "TimeoutError") {
+      throw new PayPalError("PayPal took too long to respond. Please try again.", 504);
+    }
+    throw err;
+  }
+}
+
 export async function getAccessToken(): Promise<string> {
   if (token && Date.now() < token.expiresAt - 60_000) return token.value;
   const id = process.env.PAYPAL_CLIENT_ID ?? process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
@@ -21,14 +33,13 @@ export async function getAccessToken(): Promise<string> {
   if (!id || !secret) {
     throw new PayPalError("PayPal Sandbox credentials are not configured on the server.", 500);
   }
-  const res = await fetch(`${BASE}/v1/oauth2/token`, {
+  const res = await paypalFetch(`${BASE}/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: "grant_type=client_credentials",
-    cache: "no-store",
   });
   const body = await res.json();
   if (!res.ok) throw new PayPalError(body.error_description ?? "PayPal auth failed", 502, body);
@@ -40,7 +51,7 @@ async function paypal<T>(
   path: string,
   init: { method?: string; body?: unknown; requestId?: string } = {},
 ): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await paypalFetch(`${BASE}${path}`, {
     method: init.method ?? "GET",
     headers: {
       Authorization: `Bearer ${await getAccessToken()}`,
@@ -49,7 +60,6 @@ async function paypal<T>(
       ...(init.requestId ? { "PayPal-Request-Id": init.requestId } : {}),
     },
     body: init.body ? JSON.stringify(init.body) : undefined,
-    cache: "no-store",
   });
   const text = await res.text();
   const body = text ? JSON.parse(text) : {};

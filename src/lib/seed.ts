@@ -422,6 +422,8 @@ function seedBackers(total: number, rand: () => number, fixed?: number) {
 async function withSetupTimeouts(tx: postgres.TransactionSql) {
   await tx`set local lock_timeout = '15s'`;
   await tx`set local statement_timeout = '5min'`;
+  // The truncate blocks every read on the site until this commits; never let it linger.
+  await tx`set local idle_in_transaction_session_timeout = '15s'`;
 }
 
 export async function setupSchema(sql: postgres.Sql) {
