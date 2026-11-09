@@ -14,6 +14,11 @@ export function createSql(url = process.env.DATABASE_URL) {
     // Vercel Fluid compute serves many requests from one instance, so a single
     // connection made every request wait behind the slowest query.
     max: 5,
+    // Never pipeline a second query onto a busy connection: Supabase's transaction
+    // pooler stalls the connection when it does, which hung pages until the 20s
+    // query timeout. Extra queries wait for a free connection instead.
+    // (Supported at runtime but missing from postgres.js's types, hence the spread.)
+    ...{ max_pipeline: 0 },
     idle_timeout: 20,
     max_lifetime: 60 * 10,
     connect_timeout: 10,
