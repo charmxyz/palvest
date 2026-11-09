@@ -1,6 +1,6 @@
 import "server-only";
 import type postgres from "postgres";
-import { createSql } from "./pg";
+import { POOL_SIZE, createSql } from "./pg";
 
 declare global {
   var __palvestSql: postgres.Sql | undefined;
@@ -39,25 +39,59 @@ function recycle(pool: postgres.Sql) {
   pool.end({ timeout: 0 }).catch(() => {});
 }
 
-/** Arm a timeout on every top-level query when it actually runs (fragments never run). */
+/** Run at most `size` tasks at once; the rest wait in order for a free slot. */
+function limiter(size: number) {
+  let free = size;
+  const waiting: (() => void)[] = [];
+  return async function slot<T>(fn: () => Promise<T>): Promise<T> {
+    if (free > 0) free--;
+    else await new Promise<void>((resolve) => waiting.push(resolve));
+    try {
+      return await fn();
+    } finally {
+      const next = waiting.shift();
+      if (next) next();
+      else free++;
+    }
+  };
+}
+
+/**
+ * Every top-level query and transaction waits for one of the pool's connections and
+ * arms a timeout once it runs (fragments never run). Never running more at once than
+ * there are connections stops postgres.js pipelining a query onto a busy connection,
+ * which Supabase's transaction pooler stalls on, hanging the page.
+ */
 function watched(sql: postgres.Sql): postgres.Sql {
+  const slot = limiter(POOL_SIZE);
   const pool: postgres.Sql = new Proxy(sql, {
     apply(target, thisArg, args) {
       const query = Reflect.apply(target, thisArg, args);
       if (query instanceof Promise && "handle" in query) {
-        const q = query as Promise<unknown> & { handle: () => Promise<void>; executed: boolean };
+        const q = query as Promise<unknown> & { handle: () => Promise<void> };
         const run = q.handle.bind(q);
-        q.handle = () => {
-          if (!q.executed) {
+        let started: Promise<void> | undefined;
+        q.handle = () =>
+          (started ??= slot(() => {
             const timer = setTimeout(() => recycle(pool), QUERY_TIMEOUT_MS);
-            const clear = () => clearTimeout(timer);
-            // Native then: Query's own then() would re-enter handle().
-            Promise.prototype.then.call(q, clear, clear);
-          }
-          return run();
-        };
+            run();
+            return new Promise<void>((done) => {
+              const finish = () => {
+                clearTimeout(timer);
+                done();
+              };
+              // Native then: Query's own then() would re-enter handle().
+              Promise.prototype.then.call(q, finish, finish);
+            });
+          }));
       }
       return query;
+    },
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (prop !== "begin") return value;
+      // A transaction holds its connection until it commits.
+      return ((...args: unknown[]) => slot(() => value.apply(target, args))) as typeof value;
     },
   });
   return pool;
