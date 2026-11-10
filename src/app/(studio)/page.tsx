@@ -253,6 +253,9 @@ export default function Home() {
             <Link href="/creator" className="hover:text-foreground">Creators</Link>
             <Link href="/pals" className="hover:text-foreground">Projects</Link>
             <Link href="/pals/portfolio" className="hover:text-foreground">Portfolio</Link>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms</Link>
+            <a href="mailto:firdaussaffan@gmail.com" className="hover:text-foreground">Contact</a>
           </nav>
         </div>
       </footer>

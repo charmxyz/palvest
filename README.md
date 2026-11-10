@@ -1,63 +1,106 @@
 # Palvest
 
-**Invest in your favorite creators.** Fans back a creator's next project before it's made, and share in what it earns. Creators propose a video, raise the budget from their Pals, and share a percentage of its eligible revenue back with them.
+**Invest in your favorite creators.** Fans back a YouTube creator's next video before it's made, and get a share of what it earns.
 
-One Next.js 16 app, two modes:
+![Palvest](showcase-images/palvest-thumbnail.png)
 
-| Route | What it does |
+**Live demo:** [www.palvest.xyz](https://www.palvest.xyz) · **License:** [MIT](LICENSE)
+
+## What it does
+
+A creator describes a video they want to make. Palvest drafts the pitch with AI and forecasts its views from the channel's real YouTube data. Fans ("Pals") back it through PayPal, from $5. Once the video is live, the creator pays a fixed share of its revenue into a pool, and Palvest splits that pool to the cent and pays every Pal through PayPal Payouts.
+
+| | |
 |---|---|
-| `/` | Minimal homepage |
-| `/creator` | Onboarding: paste a YouTube channel → analyzed → redirected to `/creator/[handle]` |
-| `/creator/[handle]` | Creator dashboard (e.g. `/creator/veritasium`, `/creator/nomad-notes`): channel analysis, editable RPM, funding simulator, proposals |
-| `/creator/[handle]/new-proposal` | Describe an idea → Claude drafts an editable proposal and picks comparable videos; code computes the forecast |
-| `/creator/[handle]/projects/[id]` | Funding progress, Pals, mark published, live views / 90-day simulation, distribute revenue via PayPal Payouts |
-| `/pals` | Marketplace |
-| `/pals/[id]` | Proposal detail, forecast, track record, budget, back with PayPal Sandbox |
-| `/pals/portfolio` | Videos backed, revenue received, revenue owed |
+| ![AI-drafted pitch](showcase-images/palvest-feature-1.png) | ![Forecast from channel data](showcase-images/palvest-feature-2.png) |
+| ![Back from $5 with PayPal](showcase-images/palvest-feature-3.png) | ![Earnings simulator](showcase-images/palvest-feature-4.png) |
+| ![Payouts split to the cent](showcase-images/palvest-feature-5.png) | ![Pal portfolio](showcase-images/palvest-feature-6.png) |
 
-No auth: the creator comes from the URL (their YouTube handle) and the Pal from a cookie. Use the switchers in the sidebar and nav. A real PayPal checkout switches you to that payer automatically.
+## How we used PayPal
 
-## Stack
+PayPal moves all the money in both directions. Everything runs against the **PayPal Sandbox** REST APIs, with code in [`src/lib/paypal.ts`](src/lib/paypal.ts) and [`src/lib/payouts.ts`](src/lib/payouts.ts).
 
-Next.js 16 (App Router, Cache Components) · Tailwind v4 + shadcn/ui · Supabase Postgres (via `postgres`) · YouTube Data API v3 · Claude (`claude-opus-5-5`, structured outputs) · PayPal Orders v2 + Payouts v1 (Sandbox) · Vercel.
+| Step | PayPal API | What happens |
+|---|---|---|
+| Authenticate | OAuth 2.0 `/v1/oauth2/token` | The server exchanges the client ID and secret for an access token. Secrets never reach the browser. |
+| A fan backs a video | **Orders v2** `POST /v2/checkout/orders` (`intent: CAPTURE`) | The server creates the order and a *pending* backing. The **PayPal JS SDK** (`@paypal/react-paypal-js`) shows the checkout buttons; if the popup can't load, a redirect checkout uses the same endpoints. |
+| Confirm the backing | **Orders v2** `POST /v2/checkout/orders/{id}/capture` | A backing only counts once PayPal reports `COMPLETED` for the expected amount and project. Capture is idempotent (`PayPal-Request-Id`), so retries and double clicks are safe. |
+| Creator funds the Pal pool | **Orders v2** create + capture | When the video earns, the creator pays the Pals' share in through PayPal. The capture must match the pool amount and distribution ID exactly. |
+| Pay every Pal | **Payouts v1** `POST /v1/payments/payouts` | One batch, one item per Pal. Before sending, Palvest writes a ledger, split pro rata in whole cents with the largest-remainder method, so the lines add up exactly to the pool. |
+| Track payouts | **Payouts v1** `GET /v1/payments/payouts/{batch_id}` | *Refresh status* pulls batch and item statuses back into the ledger. |
+
+## How we used AI
+
+AI writes the pitch; it never produces the numbers.
+
+- **Model:** Anthropic **Claude** (`claude-opus-5-5`) via the official `@anthropic-ai/sdk`, in [`src/lib/ai.ts`](src/lib/ai.ts).
+- **What it does:** from the creator's one-paragraph idea and their channel's recent uploads, Claude drafts an editable proposal (title, description, budget breakdown, funding target, and a suggested revenue share and term) and picks 2–6 past uploads most similar to the new idea.
+- **Structured outputs:** the response is constrained to a Zod schema (`output_config.format`), so the app always gets valid, typed JSON. Server-side checks then drop any video ID Claude invents, make the budget lines add up to the target, and clamp the share to 5–50% and the term to 3–36 months.
+- **Safety:** low effort for speed, server-side model fallbacks, and explicit handling of refusals and incomplete responses with a clear error for the creator.
+- **Deterministic forecast:** views and revenue come from plain code in [`src/lib/finance.ts`](src/lib/finance.ts). Low, base and high are the 25th percentile, median and 75th percentile views of the channel's last 20 mature long-form uploads. When Claude picked similar videos, the base is weighted 65% toward them. Revenue = views ÷ 1000 × RPM.
+
+## Tech stack and tools
+
+| Area | Tools |
+|---|---|
+| App | Next.js 16 (App Router, Cache Components, Turbopack), React 19, TypeScript |
+| UI | Tailwind CSS v4, shadcn/ui + Radix, Recharts, lucide icons, DM Sans / DM Mono |
+| Payments (sponsor) | **PayPal** Orders v2, Payouts v1, JS SDK (Sandbox) |
+| AI | **Anthropic Claude** API with structured outputs |
+| Data | **YouTube Data API v3** for public channel and video statistics |
+| Database | **Supabase** Postgres via the `postgres` driver |
+| Validation | Zod for API inputs and AI output schemas |
+| Hosting | **Vercel** |
 
 ## Setup
 
+**Requires:** Node.js 20+, pnpm 10, a Postgres database, and API keys for PayPal Sandbox, YouTube and Anthropic.
+
 ```bash
+git clone https://github.com/charmxyz/palvest.git
+cd palvest
 pnpm install
-cp .env.example .env.local   # fill in the keys below
-pnpm db:setup                # creates tables + loads demo seed data
-pnpm dev
+cp .env.example .env.local   # then fill in the keys below
+pnpm db:setup                # creates the tables and loads demo data
+pnpm dev                     # http://localhost:3000
 ```
 
-### Keys
+### Environment variables
 
-1. **Database.** Create a Supabase project, then copy *Project Settings → Database → Connection string → Transaction pooler* into `DATABASE_URL`. Any Postgres works locally, e.g. `postgres://you@localhost:5432/palvest`. To use the SQL editor instead, run `pnpm db:sql` and paste `db/schema.sql`. Then hit **Reset demo data** in the creator sidebar to seed.
-2. **YouTube.** In Google Cloud Console, enable *YouTube Data API v3*, create an API key, and set `YOUTUBE_API_KEY`.
-3. **Claude.** Set `ANTHROPIC_API_KEY`. Proposal drafting uses `claude-opus-5-5` at low effort, with server-side refusal fallbacks enabled.
-4. **PayPal Sandbox.** At developer.paypal.com, create a REST app under *Apps & Credentials* in Sandbox mode. Copy the client ID into both `PAYPAL_CLIENT_ID` and `NEXT_PUBLIC_PAYPAL_CLIENT_ID`, and the secret into `PAYPAL_CLIENT_SECRET`. Make sure **Payouts** is enabled on the app. Check out with a *Personal* sandbox account from *Testing Tools → Sandbox Accounts*.
+| Variable | Where to get it |
+|---|---|
+| `DATABASE_URL` | Supabase → Project Settings → Database → Connection string → **Transaction pooler**. Any Postgres works locally. |
+| `YOUTUBE_API_KEY` | Google Cloud Console → enable **YouTube Data API v3** → Credentials → API key. |
+| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API keys. |
+| `PAYPAL_CLIENT_ID`, `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | [developer.paypal.com](https://developer.paypal.com) → Apps & Credentials → **Sandbox** → create a REST app. Use the same client ID for both. |
+| `PAYPAL_CLIENT_SECRET` | Same Sandbox app. Turn on **Payouts** for the app. |
+| `PAYPAL_BASE_URL` | Leave as `https://api-m.sandbox.paypal.com`. |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally, your deployment URL in production. |
+| `CREATOR_PASSWORD` | Optional shared password for the creator studio. Leave empty to keep it open. |
 
-Secrets are only read server-side; only the PayPal client ID is public.
+To pay in checkout, log in with a **Personal** Sandbox account from PayPal Developer → Testing Tools → Sandbox Accounts.
 
-### Deploy (Vercel)
+### Deploy
 
-Import the repo, add the same env vars (set `NEXT_PUBLIC_APP_URL` to the deployment URL), and deploy. Run `pnpm db:setup` once against the production `DATABASE_URL`.
+Import the repo into Vercel, add the same environment variables (set `NEXT_PUBLIC_APP_URL` to the deployment URL), deploy, then run `pnpm db:setup` once against the production `DATABASE_URL`.
 
-## How the money and numbers work
+## Try the demo
 
-- **Forecast.** Deterministic (`src/lib/finance.ts`). Low/base/high come from the p25/median/p75 views of the last 20 mature long-form uploads (Shorts ≤60s excluded). If Claude picked comparables: `base = 0.65·median(comparables) + 0.35·median(all)`, keeping the channel's own spread. Revenue is `views / 1000 × RPM`, where RPM is editable.
-- **Backing.** `POST /api/paypal/orders` creates the order plus a *pending* backing. `POST /api/paypal/orders/[id]/capture` captures it and only counts the backing once PayPal reports `COMPLETED` for the expected amount and proposal. Capture is idempotent. If the JS SDK popup can't load, a redirect checkout uses the same endpoints.
-- **Settlement.** Pal pool = eligible revenue × share% × min(1, raised/target). Distributing first writes an auditable ledger: one line per Pal, pro rata, split in whole cents with the largest-remainder method so lines sum exactly to the pool. It then sends a PayPal Payouts batch. *Refresh status* pulls batch and item statuses back. Without PayPal credentials the ledger is still recorded (`ledger_only`) and can be sent later.
+1. Open `/creator` and paste a real channel, e.g. `youtube.com/@veritasium`. The channel is analyzed live.
+2. **Start proposal**, describe an idea with a budget, and let Claude draft it. Edit anything, then **Publish**.
+3. Open the Pal page and back it with a PayPal Sandbox buyer. Funding updates once the capture is confirmed.
+4. Switch to **Nomad Notes** → *48 Hours on the Trans-Siberian Railway*: 842,390 views → $3,369.56 revenue → **$673.91** for Pals.
+5. **Distribute to Pals**: see the ledger across 84 Pals and the PayPal Payouts batch ID.
+6. Visit `/pals/portfolio` as *Alex Rivera* to see the payout arrive.
 
-## 3-minute demo
+**Reset demo data** in the creator sidebar restores everything.
 
-1. `/creator`: paste a real channel (e.g. `youtube.com/@veritasium`) → lands on `/creator/veritasium` with live analysis; edit the RPM, play with the simulator.
-2. **Start proposal**: type the idea plus `$4,000` → **Build my proposal**. Tweak anything, then **Publish proposal**.
-3. **Open Pal page** → back `$10` with the PayPal Sandbox buyer. Funding progress updates from the server-confirmed capture.
-4. Sidebar switcher → **Nomad Notes** (`/creator/nomad-notes`) → *48 Hours on the Trans-Siberian Railway*: 842,390 views, $3,369.56 revenue, 20% → **$673.91 owed**.
-5. **Distribute $673.91 to Pals** → ledger across 84 Pals plus the PayPal Payouts batch ID.
-6. `/pals/portfolio` as *Alex Rivera*: the $10 backer received their share.
+More detail on routes, the money flow and the repo layout is in the [developer guide](docs/DEVELOPER_GUIDE.md).
 
-**Reset demo data** in the creator sidebar restores the seed at any time.
+## Disclaimer
 
-Returns aren't guaranteed and Pals don't own the video or the creator's company. This is a hackathon prototype on PayPal Sandbox.
+Palvest is a hackathon prototype running on PayPal Sandbox; no real money moves. Returns aren't guaranteed, and Pals don't own the video or the creator's company. See the [Terms](https://www.palvest.xyz/terms) and [Privacy Policy](https://www.palvest.xyz/privacy).
+
+## License
+
+[MIT](LICENSE)
